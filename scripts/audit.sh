@@ -31,5 +31,16 @@ check "Политика входящего трафика: deny" "deny" "$(sudo 
 echo "[3] Учётные записи"
 awk -F: '$3>=1000 && $3<65534 {printf "  %s (uid=%s)\n",$1,$3}' /etc/passwd
 
+
+echo "[4] Веб-сервер"
+CERT_FILE="/etc/ssl/certs/devops.crt"
+KEY_FILE="/etc/ssl/private/devops.key"
+WEB_DIR="/var/www/devops-site"
+CERT_CHECK_SEC="${CERT_CHECK_SEC:-2592000}"   # 30 суток в секундах
+check "Служба nginx активна" "active" "$(systemctl is-active nginx)"
+check "Конфигурация nginx корректна (nginx -t)" "0" "$(sudo nginx -t >/dev/null 2>&1; echo $?)"
+check "Сертификат действителен ещё не менее ${CERT_CHECK_SEC} с" "0" "$(openssl x509 -checkend "$CERT_CHECK_SEC" -noout -in "$CERT_FILE" >/dev/null 2>&1; echo $?)"
+check "Нет файлов с записью для всех, права ключа 600" "0:600" "$(find "$WEB_DIR" -perm -o+w | wc -l):$(sudo stat -c '%a' "$KEY_FILE")"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
