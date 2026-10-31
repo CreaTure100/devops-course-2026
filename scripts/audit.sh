@@ -42,5 +42,13 @@ check "Конфигурация nginx корректна (nginx -t)" "0" "$(sudo
 check "Сертификат действителен ещё не менее ${CERT_CHECK_SEC} с" "0" "$(openssl x509 -checkend "$CERT_CHECK_SEC" -noout -in "$CERT_FILE" >/dev/null 2>&1; echo $?)"
 check "Нет файлов с записью для всех, права ключа 600" "0:600" "$(find "$WEB_DIR" -perm -o+w | wc -l):$(sudo stat -c '%a' "$KEY_FILE")"
 
+echo "[5] Контейнеризация"
+DB_CONTAINER="${DB_CONTAINER:-app-db-1}"
+ENV_FILE="${ENV_FILE:-$HOME/app/.env}"
+check "Служба docker активна" "active" "$(systemctl is-active docker)"
+check "Контейнер СУБД в состоянии healthy" "healthy" "$(docker inspect -f '{{.State.Health.Status}}' "$DB_CONTAINER" 2>/dev/null)"
+check "Порты 5000 и 5432 не слушаются вне 127.0.0.1" "0" "$(ss -tln | awk 'NR>1{print $4}' | grep -E ':(5000|5432)$' | grep -vc '^127\.0\.0\.1:')"
+check "Права файла .env равны 600" "600" "$(stat -c '%a' "$ENV_FILE" 2>/dev/null)"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
