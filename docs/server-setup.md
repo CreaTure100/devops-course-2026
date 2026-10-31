@@ -112,3 +112,13 @@
   -out /etc/ssl/certs/devops.crt -subj "/CN=devops.local" -addext "subjectAltName=DNS:devops.local"`.
 - Применение конфигурации: `sudo nginx -t && sudo systemctl reload nginx` (не `restart`).
 - Доставка содержимого: `scripts/deploy.sh` (rsync с `--delete --chmod=D755,F644`).
+
+## 9. Контейнеризация
+
+- Docker Engine установлен из официального репозитория Docker (docker-ce), версия 29.9.2; Compose plugin версии 5.6.1.
+- Группа docker: devops (имеет право sudo).
+- Проект: ~/app (Dockerfile, docker-compose.yml, app.py, requirements.txt).
+- Файл ~/app/.env: права 600, владелец devops, в репозиторий не входит; создаётся из .env.example, пароль генерируется openssl rand -hex 16.
+- Порты: приложение 127.0.0.1:5000 (только локально); порт СУБД 5432 не публикуется.
+- Именованный том: app_db_data (данные PostgreSQL, каталог /var/lib/postgresql/data).
+- Nginx: location /app/ → proxy_pass http://127.0.0.1:5000/ с заголовками Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto; статический ресурс на / сохранён.
