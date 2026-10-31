@@ -92,3 +92,23 @@
 | 01-clean-install | 29.10.26 | чистая установка, обновлённая система |
 | 02-keys-configured | 30.10.26 | пользователь devops, вход по ключу |
 | 03-ssh-hardened | 30.10.26 | SSH усилен, порт 2222 |
+
+## 9. Веб-сервер
+
+- Пакет: `nginx` (установка: `sudo apt update && sudo apt install -y nginx`).
+- Конфигурация ресурса: `/etc/nginx/sites-available/devops-site`, включена символической
+  ссылкой в `/etc/nginx/sites-enabled/`; стандартный ресурс отключён (удалена ссылка
+  `/etc/nginx/sites-enabled/default`, файл `sites-available/default` сохранён).
+- Блок 1: `listen 80`, `server_name devops.local`, `return 301 https://$host$request_uri`.
+- Блок 2: `listen 443 ssl` (и IPv6), `ssl_protocols TLSv1.2 TLSv1.3`, `root /var/www/devops-site`,
+  `index index.html`, `error_page 404 /404.html`, журналы `/var/log/nginx/devops-site.access.log`
+  и `/var/log/nginx/devops-site.error.log`.
+- Каталог ресурса: `/var/www/devops-site`, владелец `devops:devops`, права 755 для каталогов
+  и 644 для файлов.
+- Сертификат: `/etc/ssl/certs/devops.crt` (владелец root, права 644).
+- Закрытый ключ: `/etc/ssl/private/devops.key` (владелец root, права 600).
+- Формирование сертификата (самоподписанный, срок 365 дней, SAN `devops.local`):
+  `sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/devops.key
+  -out /etc/ssl/certs/devops.crt -subj "/CN=devops.local" -addext "subjectAltName=DNS:devops.local"`.
+- Применение конфигурации: `sudo nginx -t && sudo systemctl reload nginx` (не `restart`).
+- Доставка содержимого: `scripts/deploy.sh` (rsync с `--delete --chmod=D755,F644`).
