@@ -122,3 +122,25 @@
 - Порты: приложение 127.0.0.1:5000 (только локально); порт СУБД 5432 не публикуется.
 - Именованный том: app_db_data (данные PostgreSQL, каталог /var/lib/postgresql/data).
 - Nginx: location /app/ → proxy_pass http://127.0.0.1:5000/ с заголовками Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto; статический ресурс на / сохранён.
+## 10. Ansible
+
+**Расположение проекта.** Каталог `ansible/` в репозитории `devops-course-2026` (ветка `feature/ansible`).
+
+**Узлы.** Управляющий узел – WSL (Ubuntu) на хосте с Ansible и sshpass. Управляемый узел – VM `devops-vm` (Ubuntu Server 24.04, адрес 192.168.56.101, сеть Host-only).
+
+**Inventory.** `inventory/bootstrap.ini` – первичный запуск от `student` по паролю. `inventory/prod.ini` – последующие запуски от `devops` по ключу `~/.ssh/devops_vm`.
+
+**Учётные записи.** bootstrap: `student` (пароль, `--ask-pass --ask-become-pass`). prod: `devops` (SSH-ключ, sudo без пароля). Пароли и закрытый ключ в репозитории не хранятся.
+
+**Роли.**
+- `base` – проверка ОС, базовые пакеты, репозиторий Docker, Docker Engine;
+- `ssh` – пользователь `devops`, ключ, sudo, hardening SSH, UFW;
+- `nginx` – Nginx как reverse proxy на порт 80;
+- `app` – загрузка образа, запуск контейнера, проверка `/health`.
+
+**Приложение.** Образ GHCR `ghcr.io/creature100/devops-ci-app`, версия задаётся переменной `app_tag` в `group_vars/all.yml` (полный SHA `17619f05f92073787707e680fc33fc7b0b1b9a57`). Контейнер `devops-ci-app`, порт 5000 публикуется только на 127.0.0.1. Health endpoint: `/health`.
+
+**Команды.** Первичный запуск (из каталога `ansible/`):
+`ansible-playbook -i inventory/bootstrap.ini site.yml --ask-pass --ask-become-pass`
+Повторный запуск: `ansible-playbook site.yml`
+Read-only аудит: `ansible-playbook verify.yml`
