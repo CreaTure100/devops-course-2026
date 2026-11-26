@@ -1,0 +1,6 @@
+---
+app_image: "ghcr.io/creature100/devops-ci-app"
+app_tag: "17619f05f92073787707e680fc33fc7b0b1b9a57"
+app_container_name: "devops-ci-app"
+app_host_port: 5000
+app_internal_port: 5000
